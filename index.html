@@ -50,7 +50,7 @@
             backdrop-filter: blur(10px); transition: box-shadow 0.3s, transform 0.2s;
             user-select: none;
             overflow: hidden;
-            resize: both; /* Cho phép resize trình duyệt */
+            resize: both;
         }
         .note-header {
             cursor: move; margin: -1.2rem -1.2rem 0.75rem -1.2rem;
@@ -61,7 +61,6 @@
         .note-card:hover .edit-hint { opacity: 0.5; }
         .note-card:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.12); }
 
-        /* Custom Resize Handle Appearance */
         .note-card::-webkit-resizer {
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 15l6 6M9 15l6 6M3 15l6 6"/></svg>');
             background-repeat: no-repeat;
@@ -112,7 +111,6 @@
         .color-dot:hover { transform: scale(1.2); }
         .color-dot.active { border-color: #059669; transform: scale(1.1); }
 
-        /* Fonts */
         .font-quicksand { font-family: 'Quicksand', sans-serif; }
         .font-dancing { font-family: 'Dancing Script', cursive; }
         .font-playfair { font-family: 'Playfair Display', serif; }
@@ -208,7 +206,6 @@
         <div id="canvas-content"></div>
     </div>
 
-    <!-- Modal Ghi chú -->
     <div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[3000] hidden flex items-center justify-center p-6">
         <div class="bg-white rounded-[3rem] w-full max-w-2xl p-8 md:p-10 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 id="modal-title" class="text-2xl font-extrabold mb-6 text-gray-800">Tạo Ghi Chú Mới</h2>
@@ -258,14 +255,25 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, query, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // DÁN CẤU HÌNH FIREBASE CỦA BẠN VÀO ĐÂY
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlxbLJyfCHZuzd0DVSQAy65J-CIFg0uCM",
+            authDomain: "qanklucynotes.firebaseapp.com",
+            projectId: "qanklucynotes",
+            storageBucket: "qanklucynotes.firebasestorage.app",
+            messagingSenderId: "859079172160",
+            appId: "1:859079172160:web:89f2cccab108324eddbfa5",
+            measurementId: "G-05NGVEYVB5"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const provider = new GoogleAuthProvider();
+        const appId = 'qank-lucy-notes-app';
 
         let currentUser = null;
         let scale = 1, posX = 0, posY = 0;
@@ -275,18 +283,34 @@
         let startX, startY;
         let editingNoteId = null;
 
-        window.login = (type) => {
-            if (type === 'guest') {
+        window.login = async (type) => {
+            if (type === 'google') {
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    // UI sẽ tự cập nhật qua onAuthStateChanged bên dưới
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('app-sidebar').classList.remove('collapsed');
+                    document.getElementById('toggle-sidebar').classList.remove('hidden');
+                    window.changeTheme('mint');
+                } catch (error) {
+                    console.error("Lỗi Google:", error);
+                    alert("Đăng nhập thất bại!");
+                }
+            } else if (type === 'guest') {
                 const name = document.getElementById('guest-name').value.trim() || "Người dùng";
-                document.getElementById('user-display').innerText = name;
-                document.getElementById('user-initial').innerText = name[0].toUpperCase();
+                updateUI(name);
                 document.getElementById('auth-overlay').style.display = 'none';
                 document.getElementById('app-sidebar').classList.remove('collapsed');
                 document.getElementById('toggle-sidebar').classList.remove('hidden');
                 window.changeTheme('mint');
-                localStorage.setItem('qank_user_name', name);
+                await signInAnonymously(auth);
             }
         };
+
+        function updateUI(name) {
+            document.getElementById('user-display').innerText = name;
+            document.getElementById('user-initial').innerText = name[0].toUpperCase();
+        }
 
         window.handleLogout = async () => {
             try {
@@ -294,6 +318,14 @@
                 location.reload();
             } catch (err) { console.error(err); }
         };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) { 
+                currentUser = user; 
+                if (user.displayName) updateUI(user.displayName);
+                setupSync(); 
+            }
+        });
 
         window.toggleSidebar = () => document.getElementById('app-sidebar').classList.toggle('collapsed');
 
@@ -379,7 +411,7 @@
 
             try {
                 if (editingNoteId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notes', editingNoteId), noteData);
+                    await updateDoc(doc(db, 'notes', editingNoteId), noteData);
                 } else {
                     const id = Date.now().toString();
                     Object.assign(noteData, {
@@ -388,27 +420,14 @@
                         width: 300,
                         height: 250
                     });
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notes', id), noteData);
+                    await setDoc(doc(db, 'notes', id), noteData);
                 }
                 window.closeNoteModal();
             } catch (err) { console.error(err); }
         };
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) { currentUser = user; setupSync(); }
-        });
-
-        async function initAuth() {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        }
-        initAuth();
-
         function setupSync() {
-            const notesCol = collection(db, 'artifacts', appId, 'public', 'data', 'notes');
+            const notesCol = collection(db, 'notes');
             onSnapshot(query(notesCol), (snapshot) => {
                 renderNotes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
             });
@@ -438,10 +457,8 @@
                     <div class="edit-hint">Nhấn đúp để chỉnh sửa</div>
                 `;
 
-                // Xử lý Double Click
                 card.addEventListener('dblclick', () => window.openNoteModal(n));
 
-                // Xử lý Resize đồng bộ lên DB
                 let resizeTimeout;
                 const resizeObserver = new ResizeObserver(entries => {
                     for (let entry of entries) {
@@ -449,8 +466,8 @@
                         resizeTimeout = setTimeout(async () => {
                             const { width, height } = entry.contentRect;
                             if (Math.abs(width - (n.width||300)) > 5 || Math.abs(height - (n.height||250)) > 5) {
-                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notes', n.id), {
-                                    width: width + 40, // bù đắp padding
+                                await updateDoc(doc(db, 'notes', n.id), {
+                                    width: width + 40,
                                     height: height + 60
                                 });
                             }
@@ -459,7 +476,6 @@
                 });
                 resizeObserver.observe(card);
 
-                // Xử lý kéo Card
                 let cardDragging = false;
                 let cStartX, cStartY;
                 const header = card.querySelector('.note-header');
@@ -483,7 +499,7 @@
                     if (cardDragging) {
                         cardDragging = false;
                         card.style.zIndex = 'auto';
-                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notes', n.id), {
+                        await updateDoc(doc(db, 'notes', n.id), {
                             x: parseFloat(card.style.left),
                             y: parseFloat(card.style.top)
                         });

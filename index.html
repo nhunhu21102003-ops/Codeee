@@ -137,6 +137,22 @@
         .font-lora { font-family: 'Lora', serif; }
         .font-oswald { font-family: 'Oswald', sans-serif; }
         .font-roboto-slab { font-family: 'Roboto Slab', serif; }
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .note-card:hover .delete-btn {
+            opacity: 0.4;
+        }
+        .delete-btn:hover {
+            opacity: 1 !important;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -472,7 +488,7 @@
         }
 
         function renderNotes(notes) {
-            const container = document.getElementById('canvas-content');
+          const container = document.getElementById('canvas-content');
             container.innerHTML = '';
             notes.forEach(n => {
                 const card = document.createElement('div');
@@ -482,59 +498,65 @@
                 card.style.width = (n.width || 300) + 'px';
                 card.style.height = (n.height || 250) + 'px';
                 
+                // Thêm HTML nút X vào header
                 card.innerHTML = `
                     <div class="note-header">
                         <span class="text-[8px] font-bold opacity-30 tracking-widest">${(n.author || "ANON").toUpperCase()}</span>
+                        <button class="delete-btn text-gray-500 hover:text-red-500 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
-                    <div class="flex-grow overflow-hidden flex flex-col">
+                    <div class="flex-grow overflow-hidden flex flex-col pointer-events-none">
                         ${n.title ? `<h3 class="font-bold text-lg mb-1">${n.title}</h3>` : ''}
                         ${n.text ? `<p class="text-sm opacity-90 whitespace-pre-wrap flex-grow">${n.text}</p>` : ''}
                         ${n.imageUrl ? `<img src="${n.imageUrl}" class="note-media max-h-[150px]" onerror="this.style.display='none'">` : ''}
-                        ${n.spotifyEmbed ? `<iframe class="spotify-embed" src="${n.spotifyEmbed}" frameborder="0" allow="encrypted-media"></iframe>` : ''}
+                        ${n.spotifyEmbed ? `<iframe class="spotify-embed" src="${n.spotifyEmbed}" frameborder="0" allow="encrypted-media" style="pointer-events: auto;"></iframe>` : ''}
                     </div>
                     <div class="edit-hint">Nhấn đúp để chỉnh sửa</div>
                 `;
 
+                // Logic Xử lý Xóa
+                const deleteBtn = card.querySelector('.delete-btn');
+                deleteBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm("Bạn có chắc muốn xóa ghi chú này của Qank&Lucy không?")) {
+                        await deleteDoc(doc(db, 'notes', n.id));
+                    }
+                });
+
                 card.addEventListener('dblclick', () => window.openNoteModal(n));
-                
-            let resizeTimeout;
+
+                // Logic Resize (Giữ nguyên của bạn nhưng đã tối ưu đường dẫn)
+                let resizeTimeout;
                 const resizeObserver = new ResizeObserver(entries => {
                     for (let entry of entries) {
-                        // 1. Lấy kích thước thực tế sau khi kéo
                         const newWidth = Math.round(entry.target.offsetWidth);
                         const newHeight = Math.round(entry.target.offsetHeight);
-                
-                        // 2. Kiểm tra nếu kích thước thực sự khác với dữ liệu hiện tại
                         if (Math.abs(newWidth - (n.width || 300)) > 5 || Math.abs(newHeight - (n.height || 250)) > 5) {
                             clearTimeout(resizeTimeout);
-                            
-                            // 3. Đợi 1 giây sau khi ngừng kéo mới lưu (tránh lag và xung đột render)
                             resizeTimeout = setTimeout(async () => {
                                 try {
-                                    // SỬA LẠI ĐƯỜNG DẪN: Phải trùng với đường dẫn lúc tạo (nằm trong collection 'notes')
-                                    const noteRef = doc(db, 'notes', n.id);
-                                    await updateDoc(noteRef, {
-                                        width: newWidth,
-                                        height: newHeight
-                                    });
-                                } catch (err) {
-                                    console.error("Lỗi cập nhật kích thước:", err);
-                                }
+                                    await updateDoc(doc(db, 'notes', n.id), { width: newWidth, height: newHeight });
+                                } catch (err) { console.error(err); }
                             }, 1000); 
                         }
                     }
                 });
                 resizeObserver.observe(card);
 
+                // Logic Drag (Kéo thả) - Thêm Z-Index để card đang kéo nằm trên cùng
                 let cardDragging = false;
                 let cStartX, cStartY;
                 const header = card.querySelector('.note-header');
                 header.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     cardDragging = true;
+                    // Đưa card lên trên cùng
+                    document.querySelectorAll('.note-card').forEach(c => c.style.zIndex = 1);
+                    card.style.zIndex = 1000;
                     cStartX = e.clientX / scale - n.x;
                     cStartY = e.clientY / scale - n.y;
-                    card.style.zIndex = 2000;
                 });
 
                 window.addEventListener('mousemove', (e) => {
@@ -548,7 +570,6 @@
                 window.addEventListener('mouseup', async () => {
                     if (cardDragging) {
                         cardDragging = false;
-                        card.style.zIndex = 'auto';
                         await updateDoc(doc(db, 'notes', n.id), {
                             x: parseFloat(card.style.left),
                             y: parseFloat(card.style.top)

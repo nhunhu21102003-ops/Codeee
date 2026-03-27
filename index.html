@@ -63,6 +63,20 @@
 @keyframes twinkle {
     0%, 100% { opacity: 0.2; transform: scale(0.8); }
     50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px white; }
+/* --- LỚP NỀN MESSI MỚI --- */
+#messi-layer {
+    background-image: url('https://www.chromethemer.com/download/hd-wallpapers/lionel-messi-dark-3840x2160.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-color: #000; /* Nền đen để hợp với ảnh dark */
+}
+
+/* Tinh chỉnh riêng cho quả bóng bay trên nền Messi */
+.ball {
+    font-size: 24px;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
 }
         #canvas-viewport { width: 100vw; height: 100vh; cursor: grab; overflow: hidden; position: relative; z-index: 1; }
         #canvas-viewport:active { cursor: grabbing; }

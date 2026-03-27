@@ -22,35 +22,49 @@
             transition: background-color 0.8s ease;
         }
 
-        .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; display: none; }
-        .heart, .fish, .ball { position: absolute; opacity: 0.3; animation: float 10s infinite linear; }
+        /* Lớp nền chung */
+        .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; display: none; overflow: hidden; }
+        .football-bg { background: linear-gradient(to bottom, #1e3a1f, #064e3b); } /* Đổi màu xanh đậm cho sang */
+
+        /* Hiệu ứng các hạt: Tim, Cá, Bóng, Sao */
+        .heart, .fish, .ball, .star { 
+            position: absolute; 
+            pointer-events: none; 
+            will-change: transform, opacity; 
+        }
+
+        /* Riêng cho Ngôi sao */
         .star {
-            position: absolute;
             background: white;
             border-radius: 50%;
-            filter: blur(1px); /* Làm ngôi sao trông mềm mại hơn */
-            opacity: 0;
-            animation: twinkle var(--duration, 3s) infinite ease-in-out;}        
-        .football-bg { background: linear-gradient(to bottom, #74c476, #238b45); }
+            box-shadow: 0 0 5px white;
+            animation: twinkle var(--duration, 3s) infinite ease-in-out;
+        }
+
+        /* Hiệu ứng Tim, Cá, Bóng bay từ dưới lên */
+        .heart, .fish, .ball {
+            opacity: 0.5;
+            animation: float var(--duration, 10s) infinite linear;
+        }
 
         @keyframes float {
             0% { transform: translateY(110vh) translateX(0) rotate(0deg); opacity: 0; }
             20% { opacity: 0.6; }
-            100% { transform: translateY(-10vh) translateX(20px) rotate(360deg); opacity: 0; }
+            100% { transform: translateY(-10vh) translateX(40px) rotate(360deg); opacity: 0; }
         }
-        @keyframes twinkle {
-        0%, 100% { 
-            opacity: 0.3; 
-            transform: scale(1); 
-            box-shadow: 0 0 5px white;
-        }
-        50% { 
-            opacity: 1; 
-            transform: scale(1.5); 
-            box-shadow: 0 0 15px white, 0 0 20px #818cf8; /* Tạo hiệu ứng tỏa sáng màu tím nhẹ */
-        }
-    }
 
+        @keyframes twinkle {
+            0%, 100% { 
+                opacity: 0.2; 
+                transform: scale(0.8); 
+                box-shadow: 0 0 3px white;
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.3); 
+                box-shadow: 0 0 10px white, 0 0 15px #818cf8; 
+            }
+        }
         #canvas-viewport { width: 100vw; height: 100vh; cursor: grab; overflow: hidden; position: relative; z-index: 1; }
         #canvas-viewport:active { cursor: grabbing; }
         #canvas-content { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
@@ -388,13 +402,13 @@
         }
 
         window.changeTheme = (theme) => {
-            document.querySelectorAll('.bg-layer').forEach(l => l.style.display = 'none');
-            const layer = document.getElementById(theme + '-layer');
-            if (layer) {
-                layer.style.display = 'block';
-                renderParticles(theme + '-layer', theme);
-            }
-        };
+    document.querySelectorAll('.bg-layer').forEach(l => l.style.display = 'none');
+    const layer = document.getElementById(theme + '-layer');
+    if (layer) {
+        layer.style.display = 'block';
+        window.renderParticles(theme + '-layer', theme); // Gọi hàm tạo hạt
+    }
+};
 
         window.setActiveColor = (color) => {
             activeColor = color;
@@ -605,43 +619,38 @@
             });
         }
 
-        function renderParticles(id, theme) {
-    const layer = document.getElementById(id);
-    if (!layer) return; // Bảo vệ code nếu layer không tồn tại
-    layer.innerHTML = '';
-    
-    const configs = { mint: '🐟', pink: '❤️', zodiac: '', messi: '⚽' };
-    const count = theme === 'zodiac' ? 100 : 15; // Tăng lên 100 ngôi sao cho lung linh
+        window.renderParticles = (id, theme) => {
+            const layer = document.getElementById(id);
+            if (!layer) return;
+            layer.innerHTML = '';
+            
+            const configs = { mint: '🐟', pink: '❤️', zodiac: '', messi: '⚽' };
+            const count = theme === 'zodiac' ? 150 : 40; // 150 sao lấp lánh
+            const fragment = document.createDocumentFragment();
 
-    for(let i=0; i < count; i++) {
-        const p = document.createElement('div');
-        p.className = theme === 'zodiac' ? 'star' : theme === 'mint' ? 'fish' : theme === 'messi' ? 'ball' : 'heart';
-        
-        if(theme !== 'zodiac') {
-            p.innerHTML = configs[theme];
-        } else {
-            // --- PHẦN THÊM CHO NGÔI SAO ---
-            const size = Math.random() * 3 + 1; // Ngôi sao từ 1px đến 4px
-            p.style.width = size + 'px';
-            p.style.height = size + 'px';
-            p.style.backgroundColor = 'white';
-            p.style.borderRadius = '50%';
-            p.style.position = 'absolute';
-            // ------------------------------
-        }
+            for(let i=0; i < count; i++) {
+                const p = document.createElement('div');
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDelay = Math.random() * 8 + 's';
 
-        p.style.left = Math.random() * 100 + 'vw';
-        p.style.top = Math.random() * 100 + 'vh'; // Thêm dòng này để sao rải đều màn hình
-        p.style.animationDelay = Math.random() * 5 + 's';
-        
-        // Tạo thời gian lấp lánh ngẫu nhiên cho mỗi ngôi sao (biến --duration đã định nghĩa ở CSS)
-        if(theme === 'zodiac') {
-            p.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
-        }
-
-        layer.appendChild(p);
-    }
-}
+                if(theme === 'zodiac') {
+                    p.className = 'star';
+                    const size = Math.random() * 2 + 1;
+                    p.style.width = size + 'px';
+                    p.style.height = size + 'px';
+                    p.style.top = Math.random() * 100 + 'vh';
+                    p.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                } else {
+                    p.className = theme === 'mint' ? 'fish' : theme === 'messi' ? 'ball' : 'heart';
+                    p.innerHTML = configs[theme];
+                    p.style.fontSize = (Math.random() * 10 + 15) + 'px';
+                    p.style.top = (Math.random() * 50 + 100) + 'vh';
+                    p.style.setProperty('--duration', (Math.random() * 6 + 10) + 's');
+                }
+                fragment.appendChild(p);
+            }
+            layer.appendChild(fragment);
+        };
 
         const viewport = document.getElementById('canvas-viewport');
         viewport.addEventListener('mousedown', (e) => {

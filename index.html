@@ -396,17 +396,12 @@
 window.openNoteModal = (note = null) => {
     const modal = document.getElementById('note-modal');
     modal.classList.remove('hidden');
-    
     if (note) {
         editingNoteId = note.id;
         document.getElementById('modal-title').innerText = "Chỉnh Sửa Ghi Chú";
         document.getElementById('note-title-input').value = note.title || "";
         document.getElementById('note-input').value = note.content || "";
         document.getElementById('image-url-input').value = note.imageUrl || "";
-        
-      
-        document.getElementById('spotify-url-input').value = note.spotifyUrl || ""; 
-        
         window.setActiveColor(note.color || 'mint');
         window.setActiveFont(note.font || 'quicksand');
     } else {
@@ -415,9 +410,6 @@ window.openNoteModal = (note = null) => {
         document.getElementById('note-title-input').value = "";
         document.getElementById('note-input').value = "";
         document.getElementById('image-url-input').value = "";
-        
-        // THÊM DÒNG NÀY: Xóa trống ô nhập nhạc khi tạo ghi chú mới [cite: 98]
-        document.getElementById('spotify-url-input').value = "";
     }
 };
 
@@ -470,13 +462,6 @@ window.setActiveFont = (f) => {
 
     // --- AUTH (GIỮ NGUYÊN) ---
    // --- AUTH (ĐÃ SỬA: BẮT BUỘC NHẬP TÊN) ---
-      function updateUI(name) {
-    const userDisplay = document.getElementById('user-display');
-    const userInitial = document.getElementById('user-initial');
-    if (userDisplay) userDisplay.innerText = name;
-    if (userInitial) userInitial.innerText = name[0] ? name[0].toUpperCase() : "?";
-}
-
   window.login = async (type) => {
     const authOverlay = document.getElementById('auth-overlay');
     
@@ -517,20 +502,6 @@ window.setActiveFont = (f) => {
         }
     }
 };
-     onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        // Nếu là Google thì lấy tên Google, nếu là Guest thì lấy tên đã nhập (hoặc dùng 'Ẩn danh')
-        const nameToDisplay = user.displayName || document.getElementById('user-display').innerText || "Khách";
-        updateUI(nameToDisplay);
-        
-        setupSync();
-        document.getElementById('auth-overlay').style.display = 'none';
-        document.getElementById('toggle-sidebar')?.classList.remove('hidden');
-    } else {
-        document.getElementById('auth-overlay').style.display = 'flex';
-    }
-});
   /* ĐOẠN MÃ SAU KHI SỬA */
 window.handleLogout = async () => {
     if (confirm("Bạn có chắc muốn đăng xuất?")) {
@@ -552,6 +523,20 @@ window.toggleSidebar = () => {
     }
 };
 
+    function updateUI(name) {
+        document.getElementById('user-display').innerText = name;
+        document.getElementById('user-initial').innerText = name[0].toUpperCase();
+    }
+
+onAuthStateChanged(auth, (user) => {
+    if (user) { 
+        currentUser = user; 
+        if (user.displayName) updateUI(user.displayName);
+        setupSync(); 
+        // Hiện nút 3 gạch sau khi đã vào phòng
+        document.getElementById('toggle-sidebar')?.classList.remove('hidden');
+    }
+});
     // --- THEME & PARTICLES (GIỮ NGUYÊN 100%) ---
     window.changeTheme = (theme) => {
         document.querySelectorAll('.bg-layer').forEach(l => l.style.display = 'none');
@@ -609,14 +594,8 @@ window.toggleSidebar = () => {
             card.style.width = (n.width || 300) + 'px';
             card.style.height = n.height ? n.height + 'px' : 'auto';
             card.style.minHeight = '150px';
-       
-            const getSpotifyEmbed = (url) => {
-    if (!url || !url.includes('spotify.com')) return '';
-    // Chuyển đổi link thường sang link embed
-    const embedUrl = url.replace('spotify.com/', 'spotify.com/embed/');
-    return `<iframe class="spotify-embed" src="${embedUrl}" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-           
-                card.innerHTML = `
+
+            card.innerHTML = `
                 <div class="note-header" style="touch-action: none; cursor: move;">
                     <span class="text-[8px] font-bold opacity-30 tracking-widest">${(n.author || "ANON").toUpperCase()}</span>
                     <button class="delete-btn text-gray-500 hover:text-red-500 p-1">
@@ -734,11 +713,9 @@ window.toggleSidebar = () => {
         const title = document.getElementById('note-title-input').value;
         const text = document.getElementById('note-input').value;
         const img = document.getElementById('image-url-input').value.trim();
-        const spot = document.getElementById('spotify-url-input').value.trim();
-        const currentUserName = document.getElementById('user-display').innerText;
         const noteData = {
-            title, content: text, color: activeColor, font: activeFont, imageUrl: img,spotifyUrl: spot,
-            author: currentUserName || "Ẩn danh",
+            title, content: text, color: activeColor, font: activeFont, imageUrl: img,
+            author: currentUser.displayName || "Ẩn danh",
             roomId: roomId || currentUser.uid, authorId: currentUser.uid, updatedAt: Date.now()
         };
         if (editingNoteId) {
@@ -781,6 +758,3 @@ function applyTransform() {
    
 </body>
 </html>
-
-
-

@@ -396,12 +396,17 @@
 window.openNoteModal = (note = null) => {
     const modal = document.getElementById('note-modal');
     modal.classList.remove('hidden');
+    
     if (note) {
         editingNoteId = note.id;
         document.getElementById('modal-title').innerText = "Chỉnh Sửa Ghi Chú";
         document.getElementById('note-title-input').value = note.title || "";
         document.getElementById('note-input').value = note.content || "";
         document.getElementById('image-url-input').value = note.imageUrl || "";
+        
+      
+        document.getElementById('spotify-url-input').value = note.spotifyUrl || ""; 
+        
         window.setActiveColor(note.color || 'mint');
         window.setActiveFont(note.font || 'quicksand');
     } else {
@@ -410,6 +415,9 @@ window.openNoteModal = (note = null) => {
         document.getElementById('note-title-input').value = "";
         document.getElementById('note-input').value = "";
         document.getElementById('image-url-input').value = "";
+        
+        // THÊM DÒNG NÀY: Xóa trống ô nhập nhạc khi tạo ghi chú mới [cite: 98]
+        document.getElementById('spotify-url-input').value = "";
     }
 };
 
@@ -594,8 +602,14 @@ onAuthStateChanged(auth, (user) => {
             card.style.width = (n.width || 300) + 'px';
             card.style.height = n.height ? n.height + 'px' : 'auto';
             card.style.minHeight = '150px';
-
-            card.innerHTML = `
+       
+            const getSpotifyEmbed = (url) => {
+    if (!url || !url.includes('spotify.com')) return '';
+    // Chuyển đổi link thường sang link embed
+    const embedUrl = url.replace('spotify.com/', 'spotify.com/embed/');
+    return `<iframe class="spotify-embed" src="${embedUrl}" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+           
+                card.innerHTML = `
                 <div class="note-header" style="touch-action: none; cursor: move;">
                     <span class="text-[8px] font-bold opacity-30 tracking-widest">${(n.author || "ANON").toUpperCase()}</span>
                     <button class="delete-btn text-gray-500 hover:text-red-500 p-1">
@@ -713,9 +727,11 @@ onAuthStateChanged(auth, (user) => {
         const title = document.getElementById('note-title-input').value;
         const text = document.getElementById('note-input').value;
         const img = document.getElementById('image-url-input').value.trim();
+        const spot = document.getElementById('spotify-url-input').value.trim();
+        const currentUserName = document.getElementById('user-display').innerText;
         const noteData = {
-            title, content: text, color: activeColor, font: activeFont, imageUrl: img,
-            author: currentUser.displayName || "Ẩn danh",
+            title, content: text, color: activeColor, font: activeFont, imageUrl: img,spotifyUrl: spot,
+            author: currentUserName || "Ẩn danh",
             roomId: roomId || currentUser.uid, authorId: currentUser.uid, updatedAt: Date.now()
         };
         if (editingNoteId) {

@@ -537,9 +537,20 @@ onAuthStateChanged(auth, (user) => {
     if (user) { 
         currentUser = user; 
         if (user.displayName) updateUI(user.displayName);
-        setupSync(); 
-        // Hiện nút 3 gạch sau khi đã vào phòng
+        
+        // --- CHỖ CẦN THÊM: Ẩn màn hình đăng nhập ---
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.style.display = 'none';
+        
+        // Hiện nút menu 3 gạch
         document.getElementById('toggle-sidebar')?.classList.remove('hidden');
+        
+        // Gọi hàm đồng bộ dữ liệu (đảm bảo bạn có hàm setupSync bên dưới)
+        if (typeof setupSync === "function") setupSync(); 
+    } else {
+        // Nếu chưa đăng nhập thì hiện màn hình chào
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.style.display = 'flex';
     }
 });
     // --- THEME & PARTICLES (GIỮ NGUYÊN 100%) ---
@@ -557,39 +568,43 @@ onAuthStateChanged(auth, (user) => {
         }
     };
 
-    window.renderParticles = (id, theme) => {
-        const layer = document.getElementById(id);
-        if (!layer) return;
-        layer.innerHTML = '';
-        const configs = { mint: '🐟', pink: '❤️', zodiac: '', messi: '⚽', yellow: 
-    window.renderParticles = (id, theme) => {
-        const layer = document.getElementById(id);
-        if (!layer) return;
-        layer.innerHTML = '';
-        const configs = { mint: '🐟', pink: '❤️', zodiac: '', messi: '⚽', yellow: '🍋', blue: '🐧', orange: '🍊'};
-        const count = theme === 'zodiac' ? 150 : 40; 
-        const fragment = document.createDocumentFragment();
-        for(let i=0; i < count; i++) {
-            const p = document.createElement('div');
-            p.style.left = Math.random() * 100 + 'vw';
-            p.style.animationDelay = Math.random() * 15 + 's';
-            if(theme === 'zodiac') {
-                p.className = 'star';
-                const size = Math.random() * 2 + 1;
-                p.style.width = size + 'px'; p.style.height = size + 'px';
-                p.style.top = Math.random() * 100 + 'vh';
-                p.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
-            } else {
-                p.className = theme === 'mint' ? 'fish' : theme === 'messi' ? 'ball' : 'heart';
-                p.innerHTML = configs[theme];
-                p.style.fontSize = (Math.random() * 15 + 20) + 'px';
-                p.style.bottom = "-50px";
-                p.style.setProperty('--duration', (Math.random() * 7 + 8) + 's');
-            }
-            fragment.appendChild(p);
-        }
-        layer.appendChild(fragment);
+ window.renderParticles = (id, theme) => {
+    const layer = document.getElementById(id);
+    if (!layer) return;
+    layer.innerHTML = '';
+    
+    // Khai báo icon cho tất cả các chủ đề
+    const configs = { 
+        mint: '🐟', pink: '❤️', zodiac: '', messi: '⚽', 
+        yellow: '🍋', blue: '🐧', orange: '🍊' 
     };
+    
+    const count = theme === 'zodiac' ? 150 : 40; 
+    const fragment = document.createDocumentFragment();
+    
+    for(let i=0; i < count; i++) {
+        const p = document.createElement('div');
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.animationDelay = Math.random() * 15 + 's';
+        
+        if(theme === 'zodiac') {
+            p.className = 'star';
+            const size = Math.random() * 2 + 1;
+            p.style.width = size + 'px'; p.style.height = size + 'px';
+            p.style.top = Math.random() * 100 + 'vh';
+            p.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+        } else {
+            // Gán class để bay từ dưới lên
+            p.className = theme === 'mint' ? 'fish' : theme === 'messi' ? 'ball' : 'heart';
+            p.innerHTML = configs[theme];
+            p.style.fontSize = (Math.random() * 15 + 20) + 'px';
+            p.style.bottom = "-50px";
+            p.style.setProperty('--duration', (Math.random() * 7 + 8) + 's');
+        }
+        fragment.appendChild(p);
+    }
+    layer.appendChild(fragment);
+};
 
     // --- RENDER NOTES (CHỈ THÊM DATA-ID VÀ RESIZE-HANDLE) ---
     function renderNotes(notes) {

@@ -256,20 +256,31 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </div>
 
-    <aside class="sidebar collapsed" id="app-sidebar">
-        <div class="flex-grow overflow-y-auto px-6 py-6">
-            <div class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-3">
+   <aside class="sidebar collapsed" id="app-sidebar">
+    <div class="flex-grow overflow-y-auto px-6 py-6">
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex flex-col gap-4"> <div class="flex items-center gap-3">
                     <div id="user-initial" class="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center font-bold text-white text-xl shadow-lg">?</div>
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase">Thành viên</p>
                         <p id="user-display" class="text-sm font-bold text-gray-700">Người dùng</p>
                     </div>
                 </div>
-                <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
+
+                <div class="flex gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                    <input type="text" id="rename-input" placeholder="Đổi tên..." 
+                        class="w-full bg-transparent px-2 py-1 text-xs outline-none font-medium">
+                    <button onclick="renameUser()" 
+                        class="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-emerald-600 transition-colors">
+                        LƯU
+                    </button>
+                </div>
             </div>
+
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 rounded-xl self-start">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+        </div>
 
             <div class="mb-8">
                 <label class="text-[11px] font-bold text-gray-400 block mb-4 uppercase tracking-wider">Thu phóng Canvas</label>
@@ -533,20 +544,49 @@ window.toggleSidebar = () => {
         document.getElementById('user-display').innerText = name;
         document.getElementById('user-initial').innerText = name[0].toUpperCase();
     }
+window.renameUser = () => {
+    const nameInput = document.getElementById('rename-input');
+    const newName = nameInput.value.trim();
 
+    if (!newName) {
+        alert("Nhập tên mới đã nè iu ơi! ❤️");
+        return;
+    }
+
+    // 1. Cập nhật giao diện ngay lập tức
+    updateUI(newName);
+
+    // 2. Lưu vào localStorage để lần sau vào lại vẫn còn tên này
+    localStorage.setItem('custom_user_name', newName);
+
+    // 3. Xóa nội dung ô input sau khi lưu
+    nameInput.value = "";
+    alert("Đã đổi tên thành công rùi nhé!");
+};
+     
 onAuthStateChanged(auth, (user) => {
     if (user) { 
         currentUser = user; 
-        if (user.displayName) updateUI(user.displayName);
         
-        // --- CHỖ CẦN THÊM: Ẩn màn hình đăng nhập ---
+        // --- 1. KIỂM TRA TÊN ĐÃ ĐỔI TRONG MÁY ---
+        const savedName = localStorage.getItem('qank_lucy_username');
+        
+        if (savedName) {
+            // Nếu đã từng đổi tên, dùng tên đó
+            updateUI(savedName);
+        } else if (user.displayName) {
+            // Nếu chưa đổi, dùng tên của Google/Facebook
+            updateUI(user.displayName);
+        }
+        
+        // --- 2. ẨN MÀN HÌNH ĐĂNG NHẬP ---
         const overlay = document.getElementById('auth-overlay');
         if (overlay) overlay.style.display = 'none';
         
         // Hiện nút menu 3 gạch
         document.getElementById('toggle-sidebar')?.classList.remove('hidden');
         
-        // Gọi hàm đồng bộ dữ liệu (đảm bảo bạn có hàm setupSync bên dưới)
+        // Gọi hàm đồng bộ dữ liệu
         if (typeof setupSync === "function") setupSync(); 
     } else {
         // Nếu chưa đăng nhập thì hiện màn hình chào

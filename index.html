@@ -392,6 +392,42 @@
     let startX, startY;
     let editingNoteId = null;
 
+     // Thêm vào trong script type="module"
+window.openNoteModal = (note = null) => {
+    const modal = document.getElementById('note-modal');
+    modal.classList.remove('hidden');
+    if (note) {
+        editingNoteId = note.id;
+        document.getElementById('modal-title').innerText = "Chỉnh Sửa Ghi Chú";
+        document.getElementById('note-title-input').value = note.title || "";
+        document.getElementById('note-input').value = note.content || "";
+        document.getElementById('image-url-input').value = note.imageUrl || "";
+        window.setActiveColor(note.color || 'mint');
+        window.setActiveFont(note.font || 'quicksand');
+    } else {
+        editingNoteId = null;
+        document.getElementById('modal-title').innerText = "Tạo Ghi Chú Mới";
+        document.getElementById('note-title-input').value = "";
+        document.getElementById('note-input').value = "";
+        document.getElementById('image-url-input').value = "";
+    }
+};
+
+window.closeNoteModal = () => {
+    document.getElementById('note-modal').classList.add('hidden');
+};
+
+window.setActiveColor = (c) => {
+    activeColor = c;
+    document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+    document.getElementById(`c-${c}`)?.classList.add('active');
+};
+
+window.setActiveFont = (f) => {
+    activeFont = f;
+    document.querySelectorAll('[id^="f-"]').forEach(btn => btn.classList.remove('border-emerald-500'));
+    document.getElementById(`f-${f}`)?.classList.add('border-emerald-500');
+};
     // --- CÁC HÀM TIỆN ÍCH (GIỮ NGUYÊN) ---
     window.copyShareLink = () => {
         const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentUser.uid}`;
@@ -438,6 +474,16 @@
             await signInAnonymously(auth);
         }
     };
+     window.handleLogout = async () => {
+    if (confirm("Bạn có chắc muốn đăng xuất?")) {
+        try {
+            await signOut(auth); [cite: 102]
+            location.reload(); 
+        } catch (error) {
+            console.error("Lỗi đăng xuất:", error);
+        }
+    }
+};
      // Hàm mở/đóng menu 3 gạch
 window.toggleSidebar = () => {
     const sidebar = document.getElementById('app-sidebar');
@@ -453,14 +499,15 @@ window.toggleSidebar = () => {
         document.getElementById('user-initial').innerText = name[0].toUpperCase();
     }
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) { 
-            currentUser = user; 
-            if (user.displayName) updateUI(user.displayName);
-            setupSync(); 
-        }
-    });
-
+onAuthStateChanged(auth, (user) => {
+    if (user) { 
+        currentUser = user; 
+        if (user.displayName) updateUI(user.displayName);
+        setupSync(); 
+        // Hiện nút 3 gạch sau khi đã vào phòng
+        document.getElementById('toggle-sidebar')?.classList.remove('hidden');
+    }
+});
     // --- THEME & PARTICLES (GIỮ NGUYÊN 100%) ---
     window.changeTheme = (theme) => {
         document.querySelectorAll('.bg-layer').forEach(l => l.style.display = 'none');
@@ -652,9 +699,12 @@ window.toggleSidebar = () => {
         window.closeNoteModal();
     };
 
-    window.updateZoom = (f) => { scale = Math.min(Math.max(0.2, scale * f), 3); applyTransform(); };
-    function applyTransform() { document.getElementById('canvas-content').style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`; }
-
+   window.updateZoom = (f) => {
+    scale = Math.min(Math.max(0.2, scale * f), 3);
+    const zoomText = document.getElementById('zoom-level-text');
+    if (zoomText) zoomText.innerText = Math.round(scale * 100) + "%";
+    applyTransform();
+};
     const viewport = document.getElementById('canvas-viewport');
     viewport.addEventListener('mousedown', (e) => {
         if (e.target.closest('.note-card') || e.target.closest('button')) return;

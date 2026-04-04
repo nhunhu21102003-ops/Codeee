@@ -438,6 +438,15 @@
             await signInAnonymously(auth);
         }
     };
+     // Hàm mở/đóng menu 3 gạch
+window.toggleSidebar = () => {
+    const sidebar = document.getElementById('app-sidebar');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
+};
 
     function updateUI(name) {
         document.getElementById('user-display').innerText = name;

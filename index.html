@@ -89,6 +89,7 @@
         }
     .resize-handle {
     touch-action: none; /* Khóa cuộn trang khi đang nắm nút chỉnh size */
+     z-index: 10;
 }
             /* Tạo nút kéo tùy chỉnh */
 .resize-handle {
@@ -897,18 +898,13 @@ function getDistance(touches) {
 
 // 1. Xử lý khi bắt đầu chạm
 // Cập nhật sự kiện TouchStart của Viewport
+// Xử lý sự kiện Chạm trên nền
 viewport.addEventListener('touchstart', (e) => {
-    // 1. Nếu chạm vào nút Resize hoặc bất kỳ nút bấm nào: Dừng ngay việc kéo màn hình
-    if (e.target.closest('.resize-handle') || e.target.closest('button')) {
+    // Nếu chạm vào thẻ note, nút resize hoặc nút bấm thì KHÔNG chạy mã kéo nền
+    if (e.target.closest('.note-card') || e.target.closest('.resize-handle') || e.target.closest('button')) {
         return; 
     }
 
-    // 2. Nếu chạm vào Thẻ Note: Dừng việc kéo màn hình để nhường cho mã di chuyển thẻ
-    if (e.target.closest('.note-card')) {
-        return;
-    }
-
-    // 3. Chỉ khi chạm vào NỀN TRỐNG mới xử lý kéo màn hình hoặc Zoom
     if (e.touches.length === 1) {
         const touch = e.touches[0];
         touchStartX = touch.clientX - posX;
@@ -916,13 +912,11 @@ viewport.addEventListener('touchstart', (e) => {
     } else if (e.touches.length === 2) {
         initialDist = getDistance(e.touches);
         initialScale = scale;
-        e.preventDefault(); 
     }
 }, { passive: false });
 
-// Cập nhật sự kiện TouchMove của Viewport
 viewport.addEventListener('touchmove', (e) => {
-    // Nếu đang chạm vào thẻ, nút resize, hoặc nút bấm: KHÔNG kéo màn hình
+    // Chặn kéo nền nếu đang thao tác trên thẻ/nút
     if (e.target.closest('.note-card') || e.target.closest('.resize-handle') || e.target.closest('button')) {
         return;
     }

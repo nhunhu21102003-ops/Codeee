@@ -441,6 +441,7 @@
     let scale = 1, posX = 0, posY = 0;
     let initialDist = null; // Khoảng cách ban đầu giữa 2 ngón tay
     let initialScale = 1;   // Tỉ lệ scale tại thời điểm bắt đầu chạm
+    let touchStartX, touchStartY;
     let activeColor = 'mint';
     let activeFont = 'quicksand';
     let isDraggingViewport = false;
@@ -923,6 +924,29 @@ viewport.addEventListener('touchend', (e) => {
         initialDist = null;
     }
 });
+     // Xử lý kéo Canvas bằng 1 ngón tay trên di động
+viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        // Lưu vị trí bắt đầu chạm trừ đi vị trí hiện tại của Canvas
+        touchStartX = touch.clientX - posX;
+        touchStartY = touch.clientY - posY;
+    }
+}, { passive: false });
+
+viewport.addEventListener('touchmove', (e) => {
+    // Chỉ xử lý kéo khi dùng 1 ngón tay (không trùng với pinch zoom)
+    if (e.touches.length === 1) {
+        e.preventDefault(); // Chặn cuộn trang web mặc định
+        const touch = e.touches[0];
+        
+        // Cập nhật vị trí mới cho posX và posY
+        posX = touch.clientX - touchStartX;
+        posY = touch.clientY - touchStartY;
+        
+        applyTransform();
+    }
+}, { passive: false });
     // Khởi tạo theme mặc định
     window.changeTheme('mint');
 // Thêm vào cuối phần Script của bạn

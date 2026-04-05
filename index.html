@@ -893,39 +893,42 @@ function getDistance(touches) {
 // Xử lý khi bắt đầu chạm màn hình
 // --- ĐOẠN MÃ XỬ LÝ CẢM ỨNG TỐI ƯU CHO DI ĐỘNG ---
 
+// 1. Xử lý khi bắt đầu chạm
 viewport.addEventListener('touchstart', (e) => {
-    // 1. Nếu chạm vào THẺ NOTE hoặc NÚT: Thoát ra để mã di chuyển note tự làm việc
+    // KIỂM TRA: Nếu chạm trúng thẻ note hoặc nút bấm thì DỪNG việc kéo màn hình lại
     if (e.target.closest('.note-card') || e.target.closest('button')) {
         return; 
     }
 
-    // 2. Nếu chạm vào KHOẢNG TRỐNG (Nền canvas)
     if (e.touches.length === 1) {
-        // Chế độ 1 ngón: Kéo màn hình
+        // Chế độ 1 ngón: Kéo màn hình (Pan)
         const touch = e.touches[0];
         touchStartX = touch.clientX - posX;
         touchStartY = touch.clientY - posY;
     } else if (e.touches.length === 2) {
-        // Chế độ 2 ngón: Zoom
+        // Chế độ 2 ngón: Chuẩn bị Zoom
         initialDist = getDistance(e.touches);
         initialScale = scale;
         e.preventDefault(); 
     }
 }, { passive: false });
 
+// 2. Xử lý khi đang di chuyển ngón tay
 viewport.addEventListener('touchmove', (e) => {
-    // Nếu đang chạm vào note thì không chạy đoạn mã kéo màn hình này
-    if (e.target.closest('.note-card') || e.target.closest('button')) return;
+    // KIỂM TRA: Nếu đang cầm thẻ note thì không được dịch chuyển màn hình
+    if (e.target.closest('.note-card') || e.target.closest('button')) {
+        return; 
+    }
 
     if (e.touches.length === 1) {
-        // Logic Kéo màn hình
+        // Logic kéo màn hình
         e.preventDefault();
         const touch = e.touches[0];
         posX = touch.clientX - touchStartX;
         posY = touch.clientY - touchStartY;
         applyTransform();
     } else if (e.touches.length === 2 && initialDist !== null) {
-        // Logic Zoom
+        // Logic Zoom (2 ngón)
         e.preventDefault();
         const currentDist = getDistance(e.touches);
         const zoomFactor = currentDist / initialDist;

@@ -85,7 +85,8 @@
             user-select: none;
             overflow: hidden;
             touch-action: none; /* Ngăn trình duyệt cuộn trang khi đang tương tác với note */
-}
+            user-select: none;
+        }
     
             /* Tạo nút kéo tùy chỉnh */
 .resize-handle {
@@ -890,43 +891,53 @@ function getDistance(touches) {
 }
 
 // Xử lý khi bắt đầu chạm màn hình
-viewport.addEventListener('touchstart', (e) => {
-    // CHÈN DÒNG NÀY: Nếu ngón tay chạm trúng thẻ note hoặc nút bấm thì DỪNG kéo màn hình
-    if (e.target.closest('.note-card') || e.target.closest('button')) return;
+// --- ĐOẠN MÃ XỬ LÝ CẢM ỨNG TỐI ƯU CHO DI ĐỘNG ---
 
+viewport.addEventListener('touchstart', (e) => {
+    // 1. Nếu chạm vào THẺ NOTE hoặc NÚT: Thoát ra để mã di chuyển note tự làm việc
+    if (e.target.closest('.note-card') || e.target.closest('button')) {
+        return; 
+    }
+
+    // 2. Nếu chạm vào KHOẢNG TRỐNG (Nền canvas)
     if (e.touches.length === 1) {
-        // Nếu dùng 1 ngón: Chuẩn bị kéo màn hình (Pan)
+        // Chế độ 1 ngón: Kéo màn hình
         const touch = e.touches[0];
         touchStartX = touch.clientX - posX;
         touchStartY = touch.clientY - posY;
     } else if (e.touches.length === 2) {
-        // Nếu dùng 2 ngón: Chuẩn bị Zoom
+        // Chế độ 2 ngón: Zoom
         initialDist = getDistance(e.touches);
         initialScale = scale;
         e.preventDefault(); 
     }
 }, { passive: false });
 
-// Xử lý khi di chuyển ngón tay
 viewport.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 2 && initialDist !== null) {
-        e.preventDefault(); // Ngăn trình duyệt cuộn trang mặc định 
-        
+    // Nếu đang chạm vào note thì không chạy đoạn mã kéo màn hình này
+    if (e.target.closest('.note-card') || e.target.closest('button')) return;
+
+    if (e.touches.length === 1) {
+        // Logic Kéo màn hình
+        e.preventDefault();
+        const touch = e.touches[0];
+        posX = touch.clientX - touchStartX;
+        posY = touch.clientY - touchStartY;
+        applyTransform();
+    } else if (e.touches.length === 2 && initialDist !== null) {
+        // Logic Zoom
+        e.preventDefault();
         const currentDist = getDistance(e.touches);
         const zoomFactor = currentDist / initialDist;
+        scale = Math.min(Math.max(0.2, initialScale * zoomFactor), 3);
         
-        // Cập nhật scale dựa trên tỉ lệ thay đổi khoảng cách
-        scale = Math.min(Math.max(0.2, initialScale * zoomFactor), 3); 
+        const zoomText = document.getElementById('zoom-level-text');
+        if (zoomText) zoomText.innerText = Math.round(scale * 100) + "%";
         
-        // Cập nhật hiển thị % trên UI
-        const zoomText = document.getElementById('zoom-level-text'); 
-        if (zoomText) zoomText.innerText = Math.round(scale * 100) + "%"; 
-        
-        applyTransform(); 
+        applyTransform();
     }
 }, { passive: false });
 
-// Reset khi nhấc tay khỏi màn hình
 viewport.addEventListener('touchend', (e) => {
     if (e.touches.length < 2) {
         initialDist = null;

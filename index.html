@@ -891,8 +891,16 @@ function getDistance(touches) {
 
 // Xử lý khi bắt đầu chạm màn hình
 viewport.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 2) {
-        // Nếu có 2 ngón tay, bắt đầu tính toán khoảng cách
+    // CHÈN DÒNG NÀY: Nếu ngón tay chạm trúng thẻ note hoặc nút bấm thì DỪNG kéo màn hình
+    if (e.target.closest('.note-card') || e.target.closest('button')) return;
+
+    if (e.touches.length === 1) {
+        // Nếu dùng 1 ngón: Chuẩn bị kéo màn hình (Pan)
+        const touch = e.touches[0];
+        touchStartX = touch.clientX - posX;
+        touchStartY = touch.clientY - posY;
+    } else if (e.touches.length === 2) {
+        // Nếu dùng 2 ngón: Chuẩn bị Zoom
         initialDist = getDistance(e.touches);
         initialScale = scale;
         e.preventDefault(); 
